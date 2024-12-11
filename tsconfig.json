@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",       // Output directory for compiled files
+    "module": "commonjs",   // Module system for Node.js
+    "target": "es6"         // JavaScript version to compile to
+  },
+  "include": [
+    "./server.js"
+  ],  // Files to include in the compilation
+  "exclude": ["node_modules"]
+}
