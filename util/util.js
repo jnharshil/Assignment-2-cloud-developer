@@ -1,6 +1,7 @@
 import fs from 'fs';
-import {Jimp} from "jimp";
-
+import path from 'path';
+import axios from 'axios';
+import sharp from 'sharp';
 
 // filterImageFromURL
 // helper function to download, filter, and save the filtered image locally
@@ -12,17 +13,28 @@ import {Jimp} from "jimp";
 export async function filterImageFromURL(inputURL) {
     return new Promise(async (resolve, reject) => {
         try {
-            const photo = await Jimp.read(inputURL);
-            const outpath = '/tmp/filtered.' + Math.floor(Math.random() * 2000) + '.jpg';
-            await photo
-                .resize(256, 256) // resize
-                .quality(60) // set JPEG quality
-                .greyscale() // set greyscale
-                .write(__dirname + outpath, () => {
-                    resolve(__dirname + outpath);
-                });
+            // Fetch the image using Axios
+            const response = await axios.get(inputURL, { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(response.data);
+
+            // Generate a unique output path in the /tmp directory
+            const tmpDir = '/tmp';
+            if (!fs.existsSync(tmpDir)) {
+                fs.mkdirSync(tmpDir, { recursive: true });
+            }
+            const outpath = path.join(tmpDir, `filtered_${Date.now()}.jpg`);
+
+            // Process the image using Sharp
+            await sharp(imageBuffer)
+                .resize(256, 256) // Resize to 256x256
+                .grayscale() // Apply grayscale filter
+                .jpeg({ quality: 60 }) // Set JPEG quality
+                .toFile(outpath);
+
+            resolve(outpath);
         } catch (error) {
-            reject(error);
+            console.error('Error processing the image:', error);
+            reject(`Error processing the image: ${error.message}`);
         }
     });
 }
@@ -33,7 +45,11 @@ export async function filterImageFromURL(inputURL) {
 // INPUTS
 //    files: Array<string> an array of absolute paths to files
 export async function deleteLocalFiles(files) {
-    for (let file of files) {
-        fs.unlinkSync(file);
+    for (const file of files) {
+        try {
+            fs.unlinkSync(file);
+        } catch (error) {
+            console.error(`Error deleting file ${file}:`, error);
+        }
     }
 }
